@@ -1,0 +1,243 @@
+apply plugin: 'fork'
+//apply plugin: 'spoon'
+apply plugin: 'jacoco'
+
+android
+{
+    defaultConfig
+    {
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+//        testInstrumentationRunner "com.android.test.runner.MultiDexTestRunner"
+
+        testHandleProfiling true
+        testFunctionalTest true
+
+        testApplicationId "pl.asideas.ui.test"
+    }
+
+    packagingOptions
+    {
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'NOTICE'
+    }
+
+    testOptions
+    {
+        unitTests.returnDefaultValues = true
+    }
+
+    buildTypes
+    {
+        debug
+        {
+            testCoverageEnabled = true
+        }
+    }
+
+    lintOptions
+    {
+        abortOnError false
+        disable 'InvalidPackage'
+    }
+
+    sourceSets
+    {
+        androidTest.java.srcDirs += 'src/androidTest/kotlin'
+        test.java.srcDirs += 'src/test/kotlin'
+    }
+
+    testBuildType 'debug'
+}
+
+//task grantWriteExternalStoragePermission(type: Exec, dependsOn: 'installDebug') {
+//    println 'add runtime permission for WRITE_EXTERNAL_STORAGE'
+////    commandLine "adb shell pm grant $android.defaultConfig.applicationId android.permission.WRITE_EXTERNAL_STORAGE".split(' ')
+//    executable "bash"
+//    args "-c", "adb shell pm grant com.qmms.quote.debug.ui.test android.permission.WRITE_EXTERNAL_STORAGE"
+//
+//    executable "bash"
+//    args "-c", "adb shell pm grant com.qmms.quote.debug android.permission.WRITE_EXTERNAL_STORAGE"
+//}
+//
+//tasks.whenTaskAdded { task ->
+//    if (task.name.startsWith('connectedDebugAndroidTest')) {
+//        task.dependsOn grantWriteExternalStoragePermission
+//    }
+//}
+
+//spoon
+//{
+//    debug = true
+//    noAnimations = true
+//    // ANDROID_SERIAL is defined by our CI system
+////    devices = System.getenv('ANDROID_SERIAL') == null ? [] : [System.getenv('ANDROID_SERIAL')]
+//}
+
+def coverageSourceDirs = [
+    "$projectDir/src/main/java"
+]
+
+jacoco {
+    version '0.7.1.201405082137'
+}
+
+task jacocoDebugUnitTestReport(type: JacocoReport, dependsOn: "testDebugUnitTest") {
+    group = "Reporting"
+
+    description = "Generate Jacoco coverage reports"
+
+    classDirectories = fileTree(
+    dir: "$buildDir/intermediates/classes/debug",
+    excludes: ['**/R.class',
+               '**/R$*.class',
+               '**/*$ViewInjector*.*',
+               '**/BuildConfig.*',
+               '**/Manifest*.*',
+               '**/*Module*.*' // Dependency Injection modules
+    ]
+    )
+
+    additionalSourceDirs = files(coverageSourceDirs)
+    sourceDirectories = files(coverageSourceDirs)
+    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
+    doFirst {
+        new File("$buildDir/intermediates/classes/").eachFileRecurse { file ->
+            if (file.name.contains('$$')) {
+                file.renameTo(file.path.replace('$$', '$'))
+            }
+        }
+    }
+
+    reports {
+        xml {
+            enabled = true
+            destination "$buildDir/reports/coverage/debug/unit.xml"
+        }
+        html {
+            enabled = true
+            destination "$buildDir/reports/coverage/debug/unit"
+        }
+    }
+
+}
+
+task jacocoReleaseUnitTestReport(type: JacocoReport, dependsOn: "testReleaseUnitTest") {
+    group = "Reporting"
+
+    description = "Generate Jacoco coverage reports"
+
+    classDirectories = fileTree(
+            dir: "$buildDir/intermediates/classes/release",
+            excludes: ['**/R.class',
+                       '**/R$*.class',
+                       '**/*$ViewInjector*.*',
+                       '**/BuildConfig.*',
+                       '**/Manifest*.*',
+                       '**/*Module*.*' // Dependency Injection modules
+            ]
+    )
+
+    additionalSourceDirs = files(coverageSourceDirs)
+    sourceDirectories = files(coverageSourceDirs)
+    executionData = files("$buildDir/jacoco/testReleaseUnitTest.exec")
+    doFirst {
+        new File("$buildDir/intermediates/classes/").eachFileRecurse { file ->
+            if (file.name.contains('$$')) {
+                file.renameTo(file.path.replace('$$', '$'))
+            }
+        }
+    }
+
+    reports {
+        xml {
+            enabled = true
+            destination "$buildDir/reports/coverage/release/unit.xml"
+        }
+        html {
+            enabled = true
+            destination "$buildDir/reports/coverage/release/unit"
+        }
+    }
+}
+
+task androidEmulatorStart(type: EmulatorTask) {
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    avdName = properties.getProperty('avd.name')
+}
+
+dependencies
+{
+    // JVM Testing
+    testCompile 'junit:junit:4.10'
+    testCompile 'org.mockito:mockito-core:2.0.7-beta'
+    testCompile 'org.powermock:powermock-module-junit4:1.6.2'
+    testCompile 'org.powermock:powermock-api-mockito:1.6.2'
+    testCompile('com.squareup.assertj:assertj-android:1.0.0')
+    {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    }
+
+    // connected tests using espresso
+    def android_support_test = '0.4'
+    def espresso_version = '2.2.1'
+
+//    androidTestCompile 'com.android.support.test.uiautomator:uiautomator-v18:2.1.0'
+//    tools:overrideLibrary="android.support.test.uiautomator.v18"
+
+    androidTestCompile('com.android.support.test.espresso:espresso-core:' + espresso_version)
+    {
+        exclude group: 'javax.inject'
+    }
+    androidTestCompile 'com.android.support.test:runner:' + android_support_test
+    androidTestCompile 'com.android.support.test:rules:' + android_support_test
+    androidTestCompile('com.android.support.test.espresso:espresso-intents:' + espresso_version)
+    {
+        exclude group: 'com.android.support.test', module: 'runner'
+        exclude group: 'com.android.support.test.espresso', module: 'espresso-core'
+    }
+    androidTestCompile 'com.android.support.test.espresso:espresso-idling-resource:' + espresso_version
+    androidTestCompile 'com.android.support.test.espresso:espresso-web:' + espresso_version
+    androidTestCompile 'com.android.support.test.espresso:espresso-contrib:' + espresso_version
+
+    androidTestCompile 'com.squareup.spoon:spoon-client:1.2.0'
+    androidTestCompile('com.squareup.assertj:assertj-android:1.0.0')
+    {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    }
+    androidTestCompile 'com.shazam:gwen:1.0.2'
+//    androidTestCompile('com.android.support:multidex-instrumentation:1.0.1')
+//    {
+//        exclude group: 'com.android.support', module: 'multidex'
+//    }
+}
+
+class EmulatorTask extends DefaultTask {
+
+    @Input
+    public String avdName
+
+    def EmulatorTask() {}
+
+    @TaskAction
+    def start() {
+        if (avdName == null) {
+            throw new IllegalStateException("""
+          Please specify avdName in your build.gradle:
+
+          androidEmulatorStart {
+            avdName = "YourAvdName"
+          }
+        """)
+        }
+
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def sdkDir = properties.getProperty('sdk.dir')
+        project.logger.info("Starting emulator...")
+        def command = sdkDir + "/tools/emulator -avd " + avdName
+        def proc = command.execute()
+    }
+}

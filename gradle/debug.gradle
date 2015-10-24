@@ -1,0 +1,25 @@
+apply plugin: 'project-report'
+apply plugin: 'build-time-tracker'
+apply plugin: 'com.mutualmobile.gradle.plugins.dexinfo'
+//apply plugin: 'com.getkeepsafe.dexcount'
+
+buildtimetracker
+{
+    reporters
+    {
+        summary {
+            ordered false
+            threshold 50
+            barstyle "unicode"
+        }
+    }
+}
+
+//dexcount
+//{
+//    includeClasses = false
+//    includeFieldCount = false
+//    printAsTree = false
+//    orderByMethodCount = false
+//    verbose = false
+//}
