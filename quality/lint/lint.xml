@@ -1,0 +1,9 @@
+<lint>
+
+    <issue id="IconMissingDensityFolder" severity="ignore"/>
+
+    <issue id="InvalidPackage">
+        <ignore regexp=".*okio.*"/>
+    </issue>
+
+</lint>
