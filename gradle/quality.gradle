@@ -15,7 +15,7 @@ task checkstyle(type: Checkstyle) {
 }
 
 task findbugs(type: FindBugs) {
-    ignoreFailures = true
+    ignoreFailures = false
     effort = "max"
     reportLevel = "high"
     excludeFilter = new File("${project.rootDir}/config/quality/findbugs/findbugs-filter.xml")
@@ -44,7 +44,7 @@ task findbugs(type: FindBugs) {
 }
 
 task pmd(type: Pmd) {
-    ignoreFailures = true
+    ignoreFailures = false
     ruleSetFiles = files("${project.rootDir}/config/quality/pmd/pmd-ruleset.xml")
     ruleSets = []
 
